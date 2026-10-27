@@ -50,12 +50,16 @@ function AppContent() {
           )}
 
           {activeTab === 'clubs' && (
-            <ClubsView initialSelectedClub={selectedClubForModal} />
+            <ClubsView
+              initialSelectedClub={selectedClubForModal}
+              onClearSelectedClub={() => setSelectedClubForModal(null)}
+            />
           )}
 
           {activeTab === 'events' && (
             <EventsView
               initialSelectedEvent={selectedEventForModal}
+              onClearSelectedEvent={() => setSelectedEventForModal(null)}
               onNavigateToRegistrations={() => setActiveTab('registrations')}
             />
           )}

@@ -199,24 +199,28 @@ export const AppProvider = ({ children }) => {
 
   // Coordinator action: Approve or Reject membership (PBL lifecycle demonstration)
   const updateMembershipStatus = (requestId, newStatus, note = '') => {
-    let affectedClubId = null;
+    const targetRequest = membershipRequests.find((req) => req.id === requestId);
+    const affectedClubId = targetRequest ? targetRequest.clubId : null;
 
     setMembershipRequests((prev) =>
       prev.map((req) => {
         if (req.id === requestId) {
-          affectedClubId = req.clubId;
           return {
             ...req,
             status: newStatus,
-            reviewNotes: note || (newStatus === 'Approved' ? 'Application approved by Club Coordinator.' : 'Application declined due to capacity limitations.')
+            reviewNotes:
+              note ||
+              (newStatus === 'Approved'
+                ? 'Application approved by Club Coordinator.'
+                : 'Application declined due to capacity limitations.')
           };
         }
         return req;
       })
     );
 
-    // If approved, update club member count
-    if (newStatus === 'Approved' && affectedClubId) {
+    // If approved and was not already approved, increment club member count
+    if (newStatus === 'Approved' && affectedClubId && targetRequest?.status !== 'Approved') {
       setClubs((prev) =>
         prev.map((c) => (c.id === affectedClubId ? { ...c, memberCount: c.memberCount + 1 } : c))
       );

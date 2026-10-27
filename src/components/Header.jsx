@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Menu,
   RotateCcw,
   User,
-  CalendarCheck,
   CheckCircle2
 } from 'lucide-react';
 import { Modal } from './Modal';
@@ -20,26 +19,37 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
     year: currentUser.year
   });
 
+  // Sync profileForm whenever currentUser or modal opens (fixes reset demo bug)
+  useEffect(() => {
+    setProfileForm({
+      name: currentUser.name,
+      rollNo: currentUser.rollNo,
+      email: currentUser.email,
+      department: currentUser.department,
+      year: currentUser.year
+    });
+  }, [currentUser, isProfileModalOpen]);
+
   const titles = {
     dashboard: {
-      title: 'University Dashboard',
+      title: 'Dashboard',
       subtitle: 'Overview of recognized student clubs, campus events, and personal activity'
     },
     clubs: {
-      title: 'University Clubs & Societies',
-      subtitle: 'Explore student organizations, meet coordinators, and submit membership requests'
+      title: 'University Clubs',
+      subtitle: 'Browse student organizations, view coordinators, and submit membership requests'
     },
     events: {
-      title: 'Campus Events & Workshops',
-      subtitle: 'Browse upcoming collegiate symposiums, hackathons, and secure your registration'
+      title: 'Campus Events',
+      subtitle: 'Browse upcoming campus events, check seats, and register'
     },
     registrations: {
-      title: 'My Activities & Registrations',
-      subtitle: 'Track your confirmed event passes and membership review status'
+      title: 'My Activities',
+      subtitle: 'Track your confirmed event registrations and club membership requests'
     },
     coordinator: {
-      title: 'Coordinator Approvals & Review Panel',
-      subtitle: 'Simulate club coordinator role: approve or reject pending student membership requests'
+      title: 'Coordinator Approvals',
+      subtitle: 'Review student membership applications: approve or reject with notes'
     }
   };
 
@@ -61,7 +71,7 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
   };
 
   const handleReset = () => {
-    if (window.confirm('Restore application to initial sample PBL dataset? Any new test registrations will be reset.')) {
+    if (window.confirm('Reset application to default sample PBL dataset? Any new test registrations will be cleared.')) {
       resetDemoData();
     }
   };
@@ -71,11 +81,12 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
       <header className="top-header">
         <div className="header-left">
           <button
+            type="button"
             className="mobile-menu-btn"
             onClick={onToggleSidebar}
             aria-label="Toggle navigation menu"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
           <div className="page-title-group">
             <h2>{currentInfo.title}</h2>
@@ -84,21 +95,22 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
         </div>
 
         <div className="header-actions">
-          <div className="academic-badge">
-            <CalendarCheck size={14} style={{ color: '#2563eb' }} />
-            <span>Autumn Term 2026</span>
+          <div className="term-indicator">
+            Autumn Term 2026
           </div>
 
           <button
+            type="button"
             className="btn btn-outline btn-sm"
             onClick={() => setIsProfileModalOpen(true)}
-            title="Switch or edit active student tester profile"
+            title="Switch or edit active student profile"
           >
             <User size={14} />
-            <span>Student: {currentUser.rollNo}</span>
+            <span>Profile: {currentUser.rollNo}</span>
           </button>
 
           <button
+            type="button"
             className="btn btn-outline btn-sm"
             onClick={handleReset}
             title="Reset demo data to initial sample values"
@@ -113,21 +125,23 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
       <Modal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        title="Active Student Profile"
-        subtitle="Modify active student identity to test duplicate prevention across different roll numbers"
+        title="Student Profile"
+        subtitle="Edit active student credentials to test duplicate prevention across different roll numbers"
       >
         <form onSubmit={handleProfileSave}>
           <div className="alert-box info">
-            <User size={18} style={{ flexShrink: 0 }} />
             <div>
-              <strong>Quick Testing Tip:</strong> Change the Roll Number or Email here to test registering the same event as a new student, or keep it to verify duplicate prevention!
+              <strong>Testing Tip:</strong> Changing the Roll Number or Email allows testing as a different student without clearing storage.
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Full Name <span className="required-star">*</span></label>
+              <label className="form-label" htmlFor="profile-name">
+                Full Name <span className="required-star">*</span>
+              </label>
               <input
+                id="profile-name"
                 type="text"
                 className="form-input"
                 value={profileForm.name}
@@ -136,8 +150,11 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Roll Number <span className="required-star">*</span></label>
+              <label className="form-label" htmlFor="profile-roll">
+                Roll Number <span className="required-star">*</span>
+              </label>
               <input
+                id="profile-roll"
                 type="text"
                 className="form-input"
                 value={profileForm.rollNo}
@@ -148,8 +165,11 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">University Email <span className="required-star">*</span></label>
+            <label className="form-label" htmlFor="profile-email">
+              University Email <span className="required-star">*</span>
+            </label>
             <input
+              id="profile-email"
               type="email"
               className="form-input"
               value={profileForm.email}
@@ -160,8 +180,11 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Department <span className="required-star">*</span></label>
+              <label className="form-label" htmlFor="profile-dept">
+                Department <span className="required-star">*</span>
+              </label>
               <input
+                id="profile-dept"
                 type="text"
                 className="form-input"
                 value={profileForm.department}
@@ -170,8 +193,11 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Academic Year <span className="required-star">*</span></label>
+              <label className="form-label" htmlFor="profile-year">
+                Academic Year <span className="required-star">*</span>
+              </label>
               <select
+                id="profile-year"
                 className="form-select"
                 value={profileForm.year}
                 onChange={(e) => setProfileForm({ ...profileForm, year: e.target.value })}
@@ -185,7 +211,7 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
             </div>
           </div>
 
-          <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
+          <div className="modal-footer">
             <button
               type="button"
               className="btn btn-secondary"
@@ -194,8 +220,8 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              <CheckCircle2 size={16} />
-              Save Active Profile
+              <CheckCircle2 size={15} />
+              Save Profile
             </button>
           </div>
         </form>

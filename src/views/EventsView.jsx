@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Search,
@@ -11,19 +11,26 @@ import {
   AlertTriangle,
   Ticket,
   ArrowRight,
-  ShieldAlert,
-  Sparkles
+  ShieldAlert
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
-export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) => {
+export const EventsView = ({ initialSelectedEvent, onClearSelectedEvent, onNavigateToRegistrations }) => {
   const { events, eventRegistrations, currentUser, registerForEvent } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [activeRegisterEvent, setActiveRegisterEvent] = useState(initialSelectedEvent || null);
+  const [activeRegisterEvent, setActiveRegisterEvent] = useState(null);
   const [activeDetailsEvent, setActiveDetailsEvent] = useState(null);
   const [confirmationTicket, setConfirmationTicket] = useState(null);
+
+  // Clear initial selection after opening to avoid reopening on tab revisit
+  useEffect(() => {
+    if (initialSelectedEvent) {
+      handleOpenRegisterModal(initialSelectedEvent);
+      if (onClearSelectedEvent) onClearSelectedEvent();
+    }
+  }, [initialSelectedEvent, onClearSelectedEvent]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -77,14 +84,14 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
 
     // Pre-flight check: Event Full
     if (activeRegisterEvent.availableSeats <= 0) {
-      setFormError(`Capacity Error: "${activeRegisterEvent.title}" is already full (0 seats remaining). Registration cannot proceed.`);
+      setFormError(`Capacity Error: "${activeRegisterEvent.title}" is already full (0 seats remaining).`);
       return;
     }
 
     // Pre-flight check: Duplicate
     const existing = isUserRegisteredFor(activeRegisterEvent.id);
     if (existing) {
-      setFormError(`Duplicate Registration: You have already secured a registration for this event (Ticket Pass: ${existing.ticketCode}).`);
+      setFormError(`Duplicate Registration: You already registered for this event (Ticket: ${existing.ticketCode}).`);
       return;
     }
 
@@ -111,11 +118,11 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
       {/* Search and Category Filter Bar */}
       <div className="filter-bar">
         <div className="search-input-wrapper">
-          <Search size={16} />
+          <Search size={15} />
           <input
             type="text"
             className="search-input"
-            placeholder="Search events by title, organizing club, location, or topics..."
+            placeholder="Search events by title, club, location, or topic..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -125,6 +132,7 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
           {categories.map((category) => (
             <button
               key={category}
+              type="button"
               className={`category-pill ${selectedCategory === category ? 'active' : ''}`}
               onClick={() => setSelectedCategory(category)}
             >
@@ -137,14 +145,13 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
       {/* Events Grid */}
       {filteredEvents.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">
-            <Calendar size={28} />
-          </div>
-          <div className="empty-title">No events found matching your criteria</div>
+          <Calendar size={28} className="empty-icon" />
+          <div className="empty-title">No events found</div>
           <div className="empty-desc">
-            Try resetting your search query or switching the category filter to "All".
+            No campus events matched your search. Try adjusting the query or select "All".
           </div>
           <button
+            type="button"
             className="btn btn-outline btn-sm"
             onClick={() => {
               setSearchQuery('');
@@ -163,85 +170,61 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
               ((event.totalCapacity - event.availableSeats) / event.totalCapacity) * 100
             );
 
-            let progressColor = 'green';
-            if (isFull) progressColor = 'red';
-            else if (event.availableSeats <= 5) progressColor = 'amber';
-
             return (
-              <div key={event.id} className="event-card">
-                <div className={`event-banner-stripe ${isFull ? 'full' : ''}`} />
-
-                <div className="event-card-header">
-                  <div className="event-top-info">
-                    <span className="event-club-badge">
-                      <Building size={13} style={{ color: '#2563eb' }} />
+              <div key={event.id} className="card event-card">
+                <div className="card-header">
+                  <div className="card-top-row">
+                    <span className="tag-pill">
+                      <Building size={11} style={{ marginRight: '4px', display: 'inline' }} />
                       {event.clubName.split(' ')[0]} {event.clubName.split(' ')[1]}
                     </span>
                     {userRegistration ? (
                       <span className="badge badge-approved">Registered ✓</span>
                     ) : isFull ? (
-                      <span className="badge badge-full">House Full</span>
+                      <span className="badge badge-full">Full</span>
                     ) : event.availableSeats <= 3 ? (
-                      <span className="badge badge-warning">Only {event.availableSeats} Left</span>
+                      <span className="badge badge-warning">{event.availableSeats} left</span>
                     ) : (
-                      <span className="badge badge-open">{event.availableSeats} Available</span>
+                      <span className="badge badge-open">{event.availableSeats} open</span>
                     )}
                   </div>
-                  <h3 className="event-title">{event.title}</h3>
+                  <h3 className="card-title">{event.title}</h3>
                 </div>
 
-                <div className="event-card-body">
-                  <p className="event-description">{event.description}</p>
+                <div className="card-body">
+                  <p className="card-desc">{event.description}</p>
 
-                  <div className="event-details-grid">
-                    <div className="meta-row">
-                      <Calendar size={14} style={{ color: '#2563eb' }} />
-                      <span>
-                        <strong>Date:</strong> {event.date}
-                      </span>
+                  <div className="info-list">
+                    <div className="info-item">
+                      <Calendar size={13} />
+                      <span>{event.date} • {event.time}</span>
                     </div>
-                    <div className="meta-row">
-                      <Clock size={14} style={{ color: '#059669' }} />
-                      <span>
-                        <strong>Time:</strong> {event.time}
-                      </span>
-                    </div>
-                    <div className="meta-row">
-                      <MapPin size={14} style={{ color: '#dc2626' }} />
-                      <span>
-                        <strong>Venue:</strong> {event.location}
-                      </span>
+                    <div className="info-item">
+                      <MapPin size={13} />
+                      <span>{event.location}</span>
                     </div>
                   </div>
 
-                  {/* Seat Availability Meter */}
-                  <div className="seat-status-container">
-                    <div className="seat-status-header">
-                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Users size={12} />
-                        Seats: {event.registeredCount} / {event.totalCapacity} ({percentageBooked}%)
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: isFull ? '#ef4444' : event.availableSeats <= 3 ? '#d97706' : '#059669'
-                        }}
-                      >
-                        {isFull ? '0 Seats Left' : `${event.availableSeats} Remaining`}
+                  {/* Clean Seat Meter */}
+                  <div className="seat-meter">
+                    <div className="seat-meter-header">
+                      <span>Seats: {event.registeredCount} / {event.totalCapacity} ({percentageBooked}%)</span>
+                      <span className={isFull ? 'text-danger' : event.availableSeats <= 3 ? 'text-warning' : 'text-success'}>
+                        {isFull ? '0 Remaining' : `${event.availableSeats} Available`}
                       </span>
                     </div>
-                    <div className="seat-progress-track">
+                    <div className="seat-meter-bar">
                       <div
-                        className={`seat-progress-fill ${progressColor}`}
+                        className={`seat-meter-fill ${isFull ? 'fill-danger' : event.availableSeats <= 3 ? 'fill-warning' : 'fill-primary'}`}
                         style={{ width: `${percentageBooked}%` }}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="event-card-footer">
+                <div className="card-footer">
                   <button
+                    type="button"
                     className="btn btn-outline btn-sm"
                     onClick={() => setActiveDetailsEvent(event)}
                   >
@@ -250,21 +233,22 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
 
                   {userRegistration ? (
                     <button
+                      type="button"
                       className="btn btn-secondary btn-sm"
                       onClick={() => setConfirmationTicket(userRegistration)}
-                      title="View your registered ticket pass"
+                      title="View registration pass"
                     >
                       <Ticket size={13} />
                       View Pass
                     </button>
                   ) : (
                     <button
+                      type="button"
                       className={`btn btn-sm ${isFull ? 'btn-secondary' : 'btn-primary'}`}
                       disabled={isFull}
                       onClick={() => handleOpenRegisterModal(event)}
-                      title={isFull ? 'Event is full' : 'Register for this event'}
                     >
-                      {isFull ? 'Full (0 Seats)' : 'Register Now'}
+                      {isFull ? 'Full' : 'Register'}
                     </button>
                   )}
                 </div>
@@ -279,60 +263,55 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
         isOpen={!!activeDetailsEvent}
         onClose={() => setActiveDetailsEvent(null)}
         title={activeDetailsEvent?.title || 'Event Details'}
-        subtitle={`Organized by ${activeDetailsEvent?.clubName}`}
-        maxWidth="600px"
+        subtitle={`Organized by ${activeDetailsEvent?.clubName || ''}`}
+        maxWidth="580px"
       >
         {activeDetailsEvent && (
           <div>
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <span className="badge" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>
-                  {activeDetailsEvent.category}
-                </span>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                <span className="tag-pill">{activeDetailsEvent.category}</span>
                 {activeDetailsEvent.availableSeats === 0 ? (
                   <span className="badge badge-full">Full (0 Seats Available)</span>
                 ) : (
-                  <span className="badge badge-open">{activeDetailsEvent.availableSeats} Seats Left</span>
+                  <span className="badge badge-open">{activeDetailsEvent.availableSeats} Seats Available</span>
                 )}
               </div>
-              <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-main)' }}>
+              <p style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--text-main)' }}>
                 {activeDetailsEvent.description}
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', padding: '16px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date & Schedule</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
-                  {activeDetailsEvent.date} ({activeDetailsEvent.time})
-                </div>
+            <div className="details-box">
+              <div className="details-row">
+                <span className="details-label">Date & Time:</span>
+                <span className="details-val">{activeDetailsEvent.date} ({activeDetailsEvent.time})</span>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Campus Venue</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
-                  {activeDetailsEvent.location}
-                </div>
+              <div className="details-row">
+                <span className="details-label">Location:</span>
+                <span className="details-val">{activeDetailsEvent.location}</span>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Capacity Breakdown</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
-                  {activeDetailsEvent.registeredCount} Registered / {activeDetailsEvent.totalCapacity} Total
-                </div>
+              <div className="details-row">
+                <span className="details-label">Capacity:</span>
+                <span className="details-val">{activeDetailsEvent.registeredCount} booked of {activeDetailsEvent.totalCapacity} total</span>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Eligibility</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
-                  {activeDetailsEvent.eligibility}
-                </div>
+              <div className="details-row">
+                <span className="details-label">Eligibility:</span>
+                <span className="details-val">{activeDetailsEvent.eligibility}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button className="btn btn-secondary" onClick={() => setActiveDetailsEvent(null)}>
+            <div className="modal-footer" style={{ marginTop: '20px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setActiveDetailsEvent(null)}
+              >
                 Close
               </button>
               {!isUserRegisteredFor(activeDetailsEvent.id) && (
                 <button
+                  type="button"
                   className="btn btn-primary"
                   disabled={activeDetailsEvent.availableSeats === 0}
                   onClick={() => {
@@ -341,7 +320,7 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
                     handleOpenRegisterModal(evt);
                   }}
                 >
-                  {activeDetailsEvent.availableSeats === 0 ? 'Event is Full' : 'Register for Event'}
+                  {activeDetailsEvent.availableSeats === 0 ? 'Event is Full' : 'Register Now'}
                 </button>
               )}
             </div>
@@ -360,28 +339,26 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
           <form onSubmit={handleRegisterSubmit}>
             {formError && (
               <div className="alert-box error" role="alert">
-                <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                <AlertTriangle size={16} style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Registration Error</strong>
-                  <div style={{ marginTop: '2px' }}>{formError}</div>
+                  <strong>Error:</strong> {formError}
                 </div>
               </div>
             )}
 
             {activeRegisterEvent.availableSeats <= 0 && (
               <div className="alert-box error">
-                <ShieldAlert size={18} style={{ flexShrink: 0 }} />
+                <ShieldAlert size={16} style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Event is House Full!</strong>
-                  <div>There are 0 available seats remaining. No further registrations can be processed.</div>
+                  <strong>Event is Full.</strong> No seats remaining for registration.
                 </div>
               </div>
             )}
 
             <div className="alert-box info">
-              <Calendar size={16} style={{ flexShrink: 0 }} />
+              <Calendar size={15} style={{ flexShrink: 0 }} />
               <div>
-                <strong>Event Date:</strong> {activeRegisterEvent.date} ({activeRegisterEvent.time}) at {activeRegisterEvent.location}. Registration pass will be generated upon confirmation.
+                <strong>Event:</strong> {activeRegisterEvent.date} ({activeRegisterEvent.time}) at {activeRegisterEvent.location}.
               </div>
             </div>
 
@@ -396,14 +373,13 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
                   className="form-input"
                   value={formData.studentName}
                   onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
-                  placeholder="e.g. Aarav Sharma"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="regRoll">
-                  University Roll No <span className="required-star">*</span>
+                  Roll Number <span className="required-star">*</span>
                 </label>
                 <input
                   id="regRoll"
@@ -411,7 +387,6 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
                   className="form-input"
                   value={formData.rollNo}
                   onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-                  placeholder="e.g. 2024CS104"
                   required
                 />
               </div>
@@ -419,7 +394,7 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
 
             <div className="form-group">
               <label className="form-label" htmlFor="regEmail">
-                Student Email <span className="required-star">*</span>
+                Email Address <span className="required-star">*</span>
               </label>
               <input
                 id="regEmail"
@@ -427,16 +402,14 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
                 className="form-input"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="e.g. student@apex.edu"
                 required
               />
-              <span className="form-helper">Ticket confirmation and pass will be sent here</span>
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="regDept">
-                  Department / Major <span className="required-star">*</span>
+                  Department <span className="required-star">*</span>
                 </label>
                 <input
                   id="regDept"
@@ -444,14 +417,13 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
                   className="form-input"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="e.g. Computer Science"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="regYear">
-                  Current Year <span className="required-star">*</span>
+                  Year of Study <span className="required-star">*</span>
                 </label>
                 <select
                   id="regYear"
@@ -469,7 +441,7 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
               </div>
             </div>
 
-            <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
+            <div className="modal-footer">
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -482,7 +454,7 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
                 className="btn btn-primary"
                 disabled={activeRegisterEvent.availableSeats <= 0}
               >
-                <CheckCircle2 size={15} />
+                <CheckCircle2 size={14} />
                 Confirm Registration
               </button>
             </div>
@@ -494,72 +466,53 @@ export const EventsView = ({ initialSelectedEvent, onNavigateToRegistrations }) 
       <Modal
         isOpen={!!confirmationTicket}
         onClose={() => setConfirmationTicket(null)}
-        title="Official Event Pass Confirmed"
-        subtitle="Save or screenshot your university admission pass"
-        maxWidth="520px"
+        title="Event Registration Pass"
+        subtitle="Registration confirmed and recorded in local system"
+        maxWidth="500px"
       >
         {confirmationTicket && (
           <div>
-            <div className="ticket-card">
-              <div className="ticket-header">
+            <div className="ticket-card-simple">
+              <div className="ticket-top">
+                <span className="ticket-org">{confirmationTicket.clubName}</span>
+                <span className="ticket-code-badge">{confirmationTicket.ticketCode}</span>
+              </div>
+
+              <h4 className="ticket-event-title">{confirmationTicket.eventTitle}</h4>
+
+              <div className="ticket-grid">
                 <div>
-                  <div className="ticket-brand">Apex University • Event Pass</div>
-                  <div style={{ fontSize: '11px', color: '#93c5fd', marginTop: '2px' }}>
-                    {confirmationTicket.clubName}
-                  </div>
+                  <span className="ticket-field-label">Student:</span>
+                  <div className="ticket-field-val">{confirmationTicket.studentName} ({confirmationTicket.rollNo})</div>
                 </div>
-                <div className="ticket-code">{confirmationTicket.ticketCode}</div>
-              </div>
-
-              <h4 className="ticket-title">{confirmationTicket.eventTitle}</h4>
-
-              <div className="ticket-details">
-                <div className="ticket-detail-item">
-                  <div className="lbl">Attendee Name</div>
-                  <div className="val">{confirmationTicket.studentName}</div>
+                <div>
+                  <span className="ticket-field-label">Date:</span>
+                  <div className="ticket-field-val">{confirmationTicket.eventDate}</div>
                 </div>
-                <div className="ticket-detail-item">
-                  <div className="lbl">Roll Number</div>
-                  <div className="val">{confirmationTicket.rollNo}</div>
+                <div>
+                  <span className="ticket-field-label">Venue:</span>
+                  <div className="ticket-field-val">{confirmationTicket.location}</div>
                 </div>
-                <div className="ticket-detail-item">
-                  <div className="lbl">Scheduled Date</div>
-                  <div className="val">{confirmationTicket.eventDate}</div>
+                <div>
+                  <span className="ticket-field-label">Registered:</span>
+                  <div className="ticket-field-val">{confirmationTicket.registeredDate}</div>
                 </div>
-                <div className="ticket-detail-item">
-                  <div className="lbl">Venue</div>
-                  <div className="val">{confirmationTicket.location}</div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: '18px',
-                  paddingTop: '12px',
-                  borderTop: '1px dashed rgba(255,255,255,0.2)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '11px',
-                  color: '#94a3b8'
-                }}
-              >
-                <span>Status: Confirmed & Reserved</span>
-                <span>Registered: {confirmationTicket.registeredDate}</span>
               </div>
             </div>
 
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="modal-footer" style={{ marginTop: '16px' }}>
               <button
+                type="button"
                 className="btn btn-outline"
                 onClick={() => {
                   setConfirmationTicket(null);
                   if (onNavigateToRegistrations) onNavigateToRegistrations();
                 }}
               >
-                View in My Activities <ArrowRight size={14} />
+                View My Activities <ArrowRight size={13} />
               </button>
               <button
+                type="button"
                 className="btn btn-primary"
                 onClick={() => setConfirmationTicket(null)}
               >

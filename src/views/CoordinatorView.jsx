@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
-  ShieldCheck,
+  Search,
   CheckCircle2,
   XCircle,
-  Clock,
-  Search,
-  Filter,
-  User,
-  Building,
-  Calendar,
-  MessageSquare
+  Clock
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
@@ -38,8 +32,8 @@ export const CoordinatorView = () => {
     setReviewAction(action);
     setReviewNote(
       action === 'Approve'
-        ? 'Application approved by Faculty Coordinator. Welcome to the society!'
-        : 'Application rejected due to membership capacity limit for this term.'
+        ? 'Application approved by Faculty Coordinator.'
+        : 'Application rejected due to membership capacity limit.'
     );
   };
 
@@ -60,47 +54,24 @@ export const CoordinatorView = () => {
 
   return (
     <div className="coordinator-view">
-      {/* Informative Header Banner */}
-      <div
-        style={{
-          backgroundColor: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: 'var(--radius-lg)',
-          padding: '18px 24px',
-          marginBottom: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}
-      >
-        <ShieldCheck size={26} style={{ color: '#2563eb', flexShrink: 0 }} />
-        <div>
-          <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#1e3a8a', marginBottom: '2px' }}>
-            Faculty & Club Coordinator Review Terminal
-          </h4>
-          <p style={{ fontSize: '13px', color: '#1e40af', lineHeight: 1.5 }}>
-            Demonstrating Module 1 membership lifecycle: evaluate submitted student applications and toggle status between <strong>Pending</strong>, <strong>Approved</strong>, and <strong>Rejected</strong>. Updates persist to <code>localStorage</code> and sync with student views.
-          </p>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
+      {/* Search and Status Filter Bar */}
       <div className="filter-bar">
         <div className="search-input-wrapper">
-          <Search size={16} />
+          <Search size={15} />
           <input
             type="text"
             className="search-input"
-            placeholder="Search student applications by name, roll number, or club..."
+            placeholder="Search applications by student name, roll number, or club..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <div className="category-pills">
+        <div className="category-pills" role="radiogroup" aria-label="Status filters">
           {['All', 'Pending', 'Approved', 'Rejected'].map((status) => (
             <button
               key={status}
+              type="button"
               className={`category-pill ${statusFilter === status ? 'active' : ''}`}
               onClick={() => setStatusFilter(status)}
             >
@@ -113,12 +84,10 @@ export const CoordinatorView = () => {
       {/* Requests Table */}
       {filteredRequests.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">
-            <Clock size={28} />
-          </div>
+          <Clock size={28} className="empty-icon" />
           <div className="empty-title">No Applications Found</div>
           <div className="empty-desc">
-            There are no membership requests matching the selected filter ({statusFilter}).
+            No membership requests match filter: <strong>{statusFilter}</strong>.
           </div>
         </div>
       ) : (
@@ -127,11 +96,11 @@ export const CoordinatorView = () => {
             <thead>
               <tr>
                 <th>Applicant</th>
-                <th>Target Club</th>
+                <th>Club</th>
                 <th>Dept & Year</th>
                 <th>Date Applied</th>
-                <th>Statement of Interest</th>
-                <th>Current Status</th>
+                <th>Statement</th>
+                <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -139,30 +108,26 @@ export const CoordinatorView = () => {
               {filteredRequests.map((req) => (
                 <tr key={req.id}>
                   <td>
-                    <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '14px' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
                       {req.studentName}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Roll: {req.rollNo} • {req.email}
+                    <div className="text-muted" style={{ fontSize: '11px' }}>
+                      {req.rollNo} • {req.email}
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '13px' }}>
-                      {req.clubName}
-                    </div>
+                    <div style={{ fontWeight: 500 }}>{req.clubName}</div>
                   </td>
-                  <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {req.department}
-                    <div style={{ fontSize: '11px' }}>{req.year}</div>
+                  <td style={{ fontSize: '12px' }}>
+                    <div>{req.department}</div>
+                    <div className="text-muted" style={{ fontSize: '11px' }}>{req.year}</div>
                   </td>
-                  <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  <td className="text-muted" style={{ fontSize: '12px' }}>
                     {req.appliedDate}
                   </td>
-                  <td style={{ maxWidth: '240px' }}>
+                  <td style={{ maxWidth: '240px', fontSize: '12px', color: '#334155' }}>
                     <div
                       style={{
-                        fontSize: '12px',
-                        color: '#334155',
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
@@ -175,9 +140,6 @@ export const CoordinatorView = () => {
                   </td>
                   <td>
                     <span className={`badge badge-${req.status.toLowerCase()}`}>
-                      {req.status === 'Approved' && <CheckCircle2 size={12} />}
-                      {req.status === 'Pending' && <Clock size={12} />}
-                      {req.status === 'Rejected' && <XCircle size={12} />}
                       {req.status}
                     </span>
                   </td>
@@ -185,25 +147,23 @@ export const CoordinatorView = () => {
                     {req.status === 'Pending' ? (
                       <div style={{ display: 'inline-flex', gap: '6px' }}>
                         <button
+                          type="button"
                           className="btn btn-sm"
-                          style={{ backgroundColor: '#10b981', color: '#ffffff' }}
+                          style={{ backgroundColor: '#059669', color: '#ffffff' }}
                           onClick={() => handleOpenReviewModal(req, 'Approve')}
-                          title="Approve membership request"
                         >
-                          <CheckCircle2 size={13} />
                           Approve
                         </button>
                         <button
+                          type="button"
                           className="btn btn-sm btn-danger"
                           onClick={() => handleOpenReviewModal(req, 'Reject')}
-                          title="Reject membership request"
                         >
-                          <XCircle size={13} />
                           Reject
                         </button>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '11px', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                      <span className="text-muted" style={{ fontSize: '11px' }}>
                         Decided
                       </span>
                     )}
@@ -219,29 +179,28 @@ export const CoordinatorView = () => {
       <Modal
         isOpen={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
-        title={`${reviewAction} Membership Request`}
+        title={`${reviewAction} Application`}
         subtitle={`${selectedRequest?.studentName} (${selectedRequest?.rollNo}) for ${selectedRequest?.clubName}`}
       >
         {selectedRequest && (
           <form onSubmit={handleConfirmReview}>
             <div className={`alert-box ${reviewAction === 'Approve' ? 'success' : 'error'}`}>
-              {reviewAction === 'Approve' ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
               <div>
-                <strong>Confirming Action: {reviewAction}</strong>
+                <strong>Confirming: {reviewAction}</strong>
                 <p style={{ marginTop: '2px', fontSize: '12px' }}>
-                  This action will permanently set the student's status to <strong>{reviewAction === 'Approve' ? 'Approved' : 'Rejected'}</strong> and notify their dashboard.
+                  Update status to <strong>{reviewAction}</strong>. This updates the student's status and club membership count.
                 </p>
               </div>
             </div>
 
-            <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', fontSize: '13px' }}>
-              <div style={{ fontWeight: 600, marginBottom: '4px' }}>Applicant Statement:</div>
-              <div style={{ color: '#475569', fontStyle: 'italic' }}>"{selectedRequest.reason}"</div>
+            <div style={{ marginBottom: '14px', padding: '10px 12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>
+              <div style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2px' }}>Applicant Statement:</div>
+              <div style={{ fontStyle: 'italic', color: '#334155' }}>"{selectedRequest.reason}"</div>
             </div>
 
             <div className="form-group">
               <label className="form-label" htmlFor="coordinatorNotes">
-                Coordinator Feedback / Review Notes
+                Coordinator Feedback Note
               </label>
               <textarea
                 id="coordinatorNotes"
@@ -249,11 +208,11 @@ export const CoordinatorView = () => {
                 rows="3"
                 value={reviewNote}
                 onChange={(e) => setReviewNote(e.target.value)}
-                placeholder="Optional feedback visible to the student..."
+                placeholder="Optional feedback note visible to the student..."
               />
             </div>
 
-            <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
+            <div className="modal-footer">
               <button
                 type="button"
                 className="btn btn-secondary"

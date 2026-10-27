@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Search,
-  Users2,
+  Users,
   MapPin,
   Clock,
   Mail,
@@ -11,18 +11,25 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  HelpCircle,
-  Calendar
+  HelpCircle
 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
-export const ClubsView = ({ initialSelectedClub }) => {
+export const ClubsView = ({ initialSelectedClub, onClearSelectedClub }) => {
   const { clubs, membershipRequests, currentUser, submitMembershipRequest } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [activeDetailsClub, setActiveDetailsClub] = useState(initialSelectedClub || null);
+  const [activeDetailsClub, setActiveDetailsClub] = useState(null);
   const [activeJoinClub, setActiveJoinClub] = useState(null);
+
+  // Clear initial selection after opening to avoid reopening on tab revisit
+  useEffect(() => {
+    if (initialSelectedClub) {
+      setActiveDetailsClub(initialSelectedClub);
+      if (onClearSelectedClub) onClearSelectedClub();
+    }
+  }, [initialSelectedClub, onClearSelectedClub]);
 
   // Form State for Join Request
   const [formData, setFormData] = useState({
@@ -76,7 +83,7 @@ export const ClubsView = ({ initialSelectedClub }) => {
     e.preventDefault();
     setFormError('');
 
-    // Pre-flight client duplicate check for instant UI response
+    // Pre-flight client duplicate check
     const existing = getStudentRequestForClub(activeJoinClub.id);
     if (existing) {
       if (existing.status === 'Approved') {
@@ -115,11 +122,11 @@ export const ClubsView = ({ initialSelectedClub }) => {
       {/* Search and Category Filter Bar */}
       <div className="filter-bar">
         <div className="search-input-wrapper">
-          <Search size={16} />
+          <Search size={15} />
           <input
             type="text"
             className="search-input"
-            placeholder="Search clubs by name, description, coordinator, or tags..."
+            placeholder="Search clubs by name, description, coordinator, or tag..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -129,6 +136,7 @@ export const ClubsView = ({ initialSelectedClub }) => {
           {categories.map((category) => (
             <button
               key={category}
+              type="button"
               className={`category-pill ${selectedCategory === category ? 'active' : ''}`}
               onClick={() => setSelectedCategory(category)}
             >
@@ -141,14 +149,13 @@ export const ClubsView = ({ initialSelectedClub }) => {
       {/* Clubs Grid */}
       {filteredClubs.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">
-            <Users2 size={28} />
-          </div>
-          <div className="empty-title">No clubs match your search</div>
+          <Users size={28} className="empty-icon" />
+          <div className="empty-title">No clubs found</div>
           <div className="empty-desc">
-            Try adjusting your search query or select "All" to view all university student clubs.
+            No student clubs matched your search criteria. Try a different query or select "All".
           </div>
           <button
+            type="button"
             className="btn btn-outline btn-sm"
             onClick={() => {
               setSearchQuery('');
@@ -164,64 +171,58 @@ export const ClubsView = ({ initialSelectedClub }) => {
             const userRequest = getStudentRequestForClub(club.id);
 
             return (
-              <div key={club.id} className="club-card">
-                <div className="club-card-header">
-                  <div className="club-header-top">
-                    <span className="club-category-badge">{club.category}</span>
+              <div key={club.id} className="card club-card">
+                <div className="card-header">
+                  <div className="card-top-row">
+                    <span className="tag-pill">{club.category}</span>
                     {userRequest && (
                       <span className={`badge badge-${userRequest.status.toLowerCase()}`}>
-                        {userRequest.status === 'Approved' && <CheckCircle2 size={12} />}
-                        {userRequest.status === 'Pending' && <Clock size={12} />}
-                        {userRequest.status === 'Rejected' && <XCircle size={12} />}
                         {userRequest.status}
                       </span>
                     )}
                   </div>
-                  <h3 className="club-title">{club.name}</h3>
+                  <h3 className="card-title">{club.name}</h3>
                 </div>
 
-                <div className="club-card-body">
-                  <p className="club-description">{club.description}</p>
+                <div className="card-body">
+                  <p className="card-desc">{club.description}</p>
 
-                  <div className="club-metadata">
-                    <div className="meta-row">
-                      <UserCheck size={14} />
-                      <span>
-                        <strong>Coordinator:</strong> {club.coordinator}
-                      </span>
+                  <div className="info-list">
+                    <div className="info-item">
+                      <UserCheck size={13} />
+                      <span><strong>Lead:</strong> {club.coordinator}</span>
                     </div>
-                    <div className="meta-row">
-                      <Mail size={14} />
-                      <span>
-                        <strong>Email:</strong> {club.email}
-                      </span>
+                    <div className="info-item">
+                      <Mail size={13} />
+                      <span>{club.email}</span>
                     </div>
-                    <div className="meta-row">
-                      <MapPin size={14} />
+                    <div className="info-item">
+                      <MapPin size={13} />
                       <span>{club.location}</span>
                     </div>
-                    <div className="meta-row">
-                      <Clock size={14} />
+                    <div className="info-item">
+                      <Clock size={13} />
                       <span>{club.meetingSchedule}</span>
                     </div>
                   </div>
 
-                  <div className="club-tags">
+                  <div className="tag-list">
                     {club.tags.map((tag) => (
-                      <span key={tag} className="club-tag">
+                      <span key={tag} className="tag-subtle">
                         #{tag}
                       </span>
                     ))}
                   </div>
                 </div>
 
-                <div className="club-card-footer">
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    <strong>{club.memberCount}</strong> Active Members
+                <div className="card-footer">
+                  <span className="text-muted" style={{ fontSize: '12px' }}>
+                    {club.memberCount} Members
                   </span>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     <button
+                      type="button"
                       className="btn btn-outline btn-sm"
                       onClick={() => setActiveDetailsClub(club)}
                     >
@@ -230,6 +231,7 @@ export const ClubsView = ({ initialSelectedClub }) => {
 
                     {userRequest ? (
                       <button
+                        type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => setActiveDetailsClub(club)}
                         title={`Status: ${userRequest.status}`}
@@ -237,16 +239,17 @@ export const ClubsView = ({ initialSelectedClub }) => {
                         {userRequest.status === 'Approved'
                           ? 'Member ✓'
                           : userRequest.status === 'Pending'
-                          ? 'Pending ⏳'
+                          ? 'Pending'
                           : 'Status'}
                       </button>
                     ) : (
                       <button
+                        type="button"
                         className="btn btn-primary btn-sm"
                         onClick={() => handleOpenJoinModal(club)}
                       >
-                        <Send size={13} />
-                        Join Club
+                        <Send size={12} />
+                        Join
                       </button>
                     )}
                   </div>
@@ -262,121 +265,87 @@ export const ClubsView = ({ initialSelectedClub }) => {
         isOpen={!!activeDetailsClub}
         onClose={() => setActiveDetailsClub(null)}
         title={activeDetailsClub?.name || 'Club Details'}
-        subtitle={`Organized under ${activeDetailsClub?.category} Council`}
-        maxWidth="600px"
+        subtitle={`Category: ${activeDetailsClub?.category || ''}`}
+        maxWidth="580px"
       >
         {activeDetailsClub && (
           <div>
-            {/* If user has an existing request, show official status alert banner */}
             {(() => {
               const req = getStudentRequestForClub(activeDetailsClub.id);
               if (!req) return null;
 
-              if (req.status === 'Approved') {
-                return (
-                  <div className="alert-box success">
-                    <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
-                    <div>
-                      <strong>Official Membership Status: Approved</strong>
-                      <p style={{ marginTop: '2px', fontSize: '12px' }}>
-                        You are an active student member of {activeDetailsClub.name}. Regular attendance in weekly meetings is expected.
+              return (
+                <div className={`alert-box ${req.status === 'Approved' ? 'success' : req.status === 'Pending' ? 'warning' : 'error'}`}>
+                  <div>
+                    <strong>Membership Status: {req.status}</strong>
+                    <p style={{ marginTop: '2px', fontSize: '12px' }}>
+                      {req.status === 'Approved' && 'You are an approved active member.'}
+                      {req.status === 'Pending' && `Submitted on ${req.appliedDate}. Awaiting coordinator review.`}
+                      {req.status === 'Rejected' && 'Application not approved for this semester.'}
+                    </p>
+                    {req.reviewNotes && (
+                      <p style={{ marginTop: '4px', fontSize: '11px', fontStyle: 'italic' }}>
+                        Note: "{req.reviewNotes}"
                       </p>
-                      {req.reviewNotes && (
-                        <p style={{ marginTop: '4px', fontSize: '11px', fontStyle: 'italic', opacity: 0.9 }}>
-                          Coordinator Note: "{req.reviewNotes}"
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
-                );
-              }
-              if (req.status === 'Pending') {
-                return (
-                  <div className="alert-box warning">
-                    <Clock size={18} style={{ flexShrink: 0 }} />
-                    <div>
-                      <strong>Application Status: Pending Review</strong>
-                      <p style={{ marginTop: '2px', fontSize: '12px' }}>
-                        Your application submitted on {req.appliedDate} is currently in the queue for coordinator review.
-                      </p>
-                      {req.reviewNotes && (
-                        <p style={{ marginTop: '4px', fontSize: '11px', fontStyle: 'italic', opacity: 0.9 }}>
-                          Note: "{req.reviewNotes}"
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-              if (req.status === 'Rejected') {
-                return (
-                  <div className="alert-box error">
-                    <XCircle size={18} style={{ flexShrink: 0 }} />
-                    <div>
-                      <strong>Application Status: Rejected</strong>
-                      <p style={{ marginTop: '2px', fontSize: '12px' }}>
-                        Your membership application was not approved for this semester term.
-                      </p>
-                      {req.reviewNotes && (
-                        <p style={{ marginTop: '4px', fontSize: '11px', fontStyle: 'italic' }}>
-                          Reason: "{req.reviewNotes}"
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
+                </div>
+              );
             })()}
 
-            <div style={{ marginBottom: '18px' }}>
-              <h4 style={{ fontSize: '13px', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.05em' }}>
-                About the Society
-              </h4>
-              <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-main)' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Description
+              </div>
+              <p style={{ fontSize: '13px', lineHeight: 1.5, color: 'var(--text-main)' }}>
                 {activeDetailsClub.description}
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', padding: '16px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Faculty & Student Leads</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>{activeDetailsClub.coordinator}</div>
+            <div className="details-box">
+              <div className="details-row">
+                <span className="details-label">Coordinator:</span>
+                <span className="details-val">{activeDetailsClub.coordinator}</span>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Official Contact</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>{activeDetailsClub.email}</div>
+              <div className="details-row">
+                <span className="details-label">Contact Email:</span>
+                <span className="details-val">{activeDetailsClub.email}</span>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Meeting Location</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>{activeDetailsClub.location}</div>
+              <div className="details-row">
+                <span className="details-label">Location:</span>
+                <span className="details-val">{activeDetailsClub.location}</span>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Regular Timing</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>{activeDetailsClub.meetingSchedule}</div>
+              <div className="details-row">
+                <span className="details-label">Regular Schedule:</span>
+                <span className="details-val">{activeDetailsClub.meetingSchedule}</span>
+              </div>
+              <div className="details-row">
+                <span className="details-label">Member Count:</span>
+                <span className="details-val">{activeDetailsClub.memberCount} students (Est. {activeDetailsClub.established})</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Established {activeDetailsClub.established} • {activeDetailsClub.memberCount} members
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn btn-secondary" onClick={() => setActiveDetailsClub(null)}>
-                  Close
+            <div className="modal-footer" style={{ marginTop: '20px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setActiveDetailsClub(null)}
+              >
+                Close
+              </button>
+              {!getStudentRequestForClub(activeDetailsClub.id) && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    const c = activeDetailsClub;
+                    setActiveDetailsClub(null);
+                    handleOpenJoinModal(c);
+                  }}
+                >
+                  <Send size={13} /> Apply to Join
                 </button>
-                {!getStudentRequestForClub(activeDetailsClub.id) && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      const c = activeDetailsClub;
-                      setActiveDetailsClub(null);
-                      handleOpenJoinModal(c);
-                    }}
-                  >
-                    <Send size={14} /> Apply for Membership
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -386,25 +355,24 @@ export const ClubsView = ({ initialSelectedClub }) => {
       <Modal
         isOpen={!!activeJoinClub}
         onClose={() => setActiveJoinClub(null)}
-        title={`Membership Application: ${activeJoinClub?.name || ''}`}
-        subtitle="Submit student credentials and statement of interest for coordinator review"
+        title={`Apply to Join: ${activeJoinClub?.name || ''}`}
+        subtitle="Submit student information for coordinator review"
       >
         {activeJoinClub && (
           <form onSubmit={handleJoinSubmit}>
             {formError && (
               <div className="alert-box error" role="alert">
-                <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                <AlertTriangle size={16} style={{ flexShrink: 0 }} />
                 <div>
-                  <strong>Submission Blocked</strong>
-                  <div style={{ marginTop: '2px' }}>{formError}</div>
+                  <strong>Error:</strong> {formError}
                 </div>
               </div>
             )}
 
             <div className="alert-box info">
-              <HelpCircle size={16} style={{ flexShrink: 0 }} />
+              <HelpCircle size={15} style={{ flexShrink: 0 }} />
               <div>
-                Applications are reviewed by <strong>{activeJoinClub.coordinator.split('&')[0]}</strong>. Duplicate applications under the same roll number or email are rejected automatically.
+                Applications are reviewed by the club coordinator. Only one application per student is permitted.
               </div>
             </div>
 
@@ -419,14 +387,13 @@ export const ClubsView = ({ initialSelectedClub }) => {
                   className="form-input"
                   value={formData.studentName}
                   onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
-                  placeholder="e.g. Aarav Sharma"
                   required
                 />
               </div>
 
               <div className="form-group">
                 <label className="form-label" htmlFor="rollNo">
-                  University Roll No <span className="required-star">*</span>
+                  Roll Number <span className="required-star">*</span>
                 </label>
                 <input
                   id="rollNo"
@@ -434,7 +401,6 @@ export const ClubsView = ({ initialSelectedClub }) => {
                   className="form-input"
                   value={formData.rollNo}
                   onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-                  placeholder="e.g. 2024CS104"
                   required
                 />
               </div>
@@ -450,16 +416,14 @@ export const ClubsView = ({ initialSelectedClub }) => {
                 className="form-input"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="e.g. student@apex.edu"
                 required
               />
-              <span className="form-helper">Must be a valid email format</span>
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="department">
-                  Department / Branch <span className="required-star">*</span>
+                  Department <span className="required-star">*</span>
                 </label>
                 <input
                   id="department"
@@ -467,7 +431,6 @@ export const ClubsView = ({ initialSelectedClub }) => {
                   className="form-input"
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="e.g. Computer Science"
                   required
                 />
               </div>
@@ -494,7 +457,7 @@ export const ClubsView = ({ initialSelectedClub }) => {
 
             <div className="form-group">
               <label className="form-label" htmlFor="reason">
-                Statement of Interest / Reason to Join <span className="required-star">*</span>
+                Reason for Joining <span className="required-star">*</span>
               </label>
               <textarea
                 id="reason"
@@ -502,15 +465,15 @@ export const ClubsView = ({ initialSelectedClub }) => {
                 rows="3"
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                placeholder="Describe your background, skills, and what you hope to contribute to this society (minimum 15 characters)..."
+                placeholder="Explain your interest and what you hope to contribute (min 15 characters)..."
                 required
               />
               <span className="form-helper">
-                {formData.reason.length} / 15 minimum characters required
+                {formData.reason.length} / 15 minimum characters
               </span>
             </div>
 
-            <div className="modal-footer" style={{ margin: '20px -24px -24px', padding: '16px 24px' }}>
+            <div className="modal-footer">
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -519,7 +482,7 @@ export const ClubsView = ({ initialSelectedClub }) => {
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary">
-                <Send size={15} />
+                <Send size={13} />
                 Submit Application
               </button>
             </div>

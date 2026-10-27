@@ -2,8 +2,8 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import {
   LayoutDashboard,
-  Users2,
-  CalendarDays,
+  Users,
+  Calendar,
   BookmarkCheck,
   ShieldCheck,
   GraduationCap
@@ -24,15 +24,15 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
     },
     {
       id: 'clubs',
-      label: 'University Clubs',
-      icon: Users2,
+      label: 'Clubs',
+      icon: Users,
       badge: clubs.length,
       section: 'STUDENT PORTAL'
     },
     {
       id: 'events',
-      label: 'Campus Events',
-      icon: CalendarDays,
+      label: 'Events',
+      icon: Calendar,
       badge: events.length,
       section: 'STUDENT PORTAL'
     },
@@ -47,8 +47,8 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
       id: 'coordinator',
       label: 'Coordinator Approvals',
       icon: ShieldCheck,
-      badge: pendingRequestsCount > 0 ? `${pendingRequestsCount} Pending` : null,
-      section: 'ADMIN & REVIEW'
+      badge: pendingRequestsCount > 0 ? `${pendingRequestsCount}` : null,
+      section: 'ADMIN'
     }
   ];
 
@@ -71,7 +71,7 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="university-crest">
-            <GraduationCap size={24} />
+            <GraduationCap size={20} />
           </div>
           <div className="sidebar-brand">
             <h1>Apex University</h1>
@@ -80,73 +80,23 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-title">Overview</div>
-          {navItems
-            .filter((item) => item.section === 'OVERVIEW')
-            .map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleNavClick(item.id)}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                  {item.badge && <span className="nav-badge">{item.badge}</span>}
-                </button>
-              );
-            })}
-
-          <div className="nav-section-title">Student Services</div>
-          {navItems
-            .filter((item) => item.section === 'STUDENT PORTAL')
-            .map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleNavClick(item.id)}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                  {item.badge && <span className="nav-badge">{item.badge}</span>}
-                </button>
-              );
-            })}
-
-          <div className="nav-section-title">Evaluation & Review</div>
-          {navItems
-            .filter((item) => item.section === 'ADMIN & REVIEW')
-            .map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleNavClick(item.id)}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                  {item.badge && (
-                    <span
-                      className="nav-badge"
-                      style={
-                        pendingRequestsCount > 0
-                          ? { backgroundColor: '#f59e0b', color: '#78350f' }
-                          : {}
-                      }
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="nav-section-title">Navigation</div>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => handleNavClick(item.id)}
+              >
+                <Icon size={16} />
+                <span>{item.label}</span>
+                {item.badge && <span className="nav-badge">{item.badge}</span>}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
