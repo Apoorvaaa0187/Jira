@@ -6,51 +6,114 @@ import {
   Calendar,
   BookmarkCheck,
   ShieldCheck,
-  GraduationCap
+  GraduationCap,
+  Award,
+  Layers
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
   const { clubs, events, membershipRequests, eventRegistrations, currentUser } = useApp();
 
-  const pendingRequestsCount = membershipRequests.filter((r) => r.status === 'Pending').length;
-  const userRegistrationsCount = eventRegistrations.length;
+  const userRole = currentUser?.role || 'student';
 
-  const navItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      section: 'OVERVIEW'
-    },
-    {
-      id: 'clubs',
-      label: 'Clubs',
-      icon: Users,
-      badge: clubs.length,
-      section: 'STUDENT PORTAL'
-    },
-    {
-      id: 'events',
-      label: 'Events',
-      icon: Calendar,
-      badge: events.length,
-      section: 'STUDENT PORTAL'
-    },
-    {
-      id: 'registrations',
-      label: 'My Activities',
-      icon: BookmarkCheck,
-      badge: userRegistrationsCount > 0 ? userRegistrationsCount : null,
-      section: 'STUDENT PORTAL'
-    },
-    {
-      id: 'coordinator',
-      label: 'Coordinator Approvals',
-      icon: ShieldCheck,
-      badge: pendingRequestsCount > 0 ? `${pendingRequestsCount}` : null,
-      section: 'ADMIN'
-    }
-  ];
+  const pendingRequestsCount = membershipRequests.filter(
+    (r) => (userRole === 'coordinator' && currentUser.assignedClubId ? r.clubId === currentUser.assignedClubId : true) && r.status === 'Pending'
+  ).length;
+
+  const userRegistrationsCount = eventRegistrations.filter(
+    (r) => r.rollNo.toUpperCase() === currentUser?.rollNo?.toUpperCase()
+  ).length;
+
+  // Role-tailored navigation items
+  let navItems = [];
+
+  if (userRole === 'president') {
+    navItems = [
+      {
+        id: 'president',
+        label: 'President Portal',
+        icon: Award,
+        badge: 'Executive',
+        section: 'ADMINISTRATION'
+      },
+      {
+        id: 'coordinator',
+        label: 'Coordinator Approvals',
+        icon: ShieldCheck,
+        badge: pendingRequestsCount > 0 ? `${pendingRequestsCount}` : null,
+        section: 'ADMINISTRATION'
+      },
+      {
+        id: 'clubs',
+        label: 'All Clubs',
+        icon: Users,
+        badge: clubs.length,
+        section: 'CAMPUS DIRECTORY'
+      },
+      {
+        id: 'events',
+        label: 'All Events',
+        icon: Calendar,
+        badge: events.length,
+        section: 'CAMPUS DIRECTORY'
+      }
+    ];
+  } else if (userRole === 'coordinator') {
+    navItems = [
+      {
+        id: 'coordinator',
+        label: 'Coordinator Portal',
+        icon: ShieldCheck,
+        badge: pendingRequestsCount > 0 ? `${pendingRequestsCount}` : null,
+        section: 'CLUB MANAGEMENT'
+      },
+      {
+        id: 'clubs',
+        label: 'Browse Clubs',
+        icon: Users,
+        badge: clubs.length,
+        section: 'DIRECTORY'
+      },
+      {
+        id: 'events',
+        label: 'Campus Events',
+        icon: Calendar,
+        badge: events.length,
+        section: 'DIRECTORY'
+      }
+    ];
+  } else {
+    // Student navigation
+    navItems = [
+      {
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: LayoutDashboard,
+        section: 'MAIN'
+      },
+      {
+        id: 'clubs',
+        label: 'Clubs',
+        icon: Users,
+        badge: clubs.length,
+        section: 'STUDENT PORTAL'
+      },
+      {
+        id: 'events',
+        label: 'Events',
+        icon: Calendar,
+        badge: events.length,
+        section: 'STUDENT PORTAL'
+      },
+      {
+        id: 'registrations',
+        label: 'My Activities',
+        icon: BookmarkCheck,
+        badge: userRegistrationsCount > 0 ? userRegistrationsCount : null,
+        section: 'STUDENT PORTAL'
+      }
+    ];
+  }
 
   const handleNavClick = (id) => {
     setActiveTab(id);
@@ -75,12 +138,20 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
           </div>
           <div className="sidebar-brand">
             <h1>Apex University</h1>
-            <p>Club & Event Portal</p>
+            <p>
+              {userRole === 'president'
+                ? 'President Portal'
+                : userRole === 'coordinator'
+                ? 'Coordinator Portal'
+                : 'Student Portal'}
+            </p>
           </div>
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-title">Navigation</div>
+          <div className="nav-section-title">
+            {userRole === 'president' ? 'Executive Menu' : userRole === 'coordinator' ? 'Coordinator Menu' : 'Student Menu'}
+          </div>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -101,10 +172,12 @@ export const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }) => {
 
         <div className="sidebar-footer">
           <div className="user-profile-widget">
-            <div className="user-avatar">{currentUser.avatarInitials || 'AS'}</div>
+            <div className="user-avatar">{currentUser?.avatarInitials || 'AP'}</div>
             <div className="user-info">
-              <div className="user-name">{currentUser.name}</div>
-              <div className="user-role">{currentUser.rollNo} • {currentUser.year}</div>
+              <div className="user-name">{currentUser?.name}</div>
+              <div className="user-role" style={{ textTransform: 'capitalize' }}>
+                {currentUser?.role} • {currentUser?.rollNo}
+              </div>
             </div>
           </div>
         </div>

@@ -4,36 +4,48 @@ import {
   Menu,
   RotateCcw,
   User,
-  CheckCircle2
+  LogOut,
+  ShieldCheck,
+  Award,
+  Users
 } from 'lucide-react';
 import { Modal } from './Modal';
 
 export const Header = ({ activeTab, onToggleSidebar }) => {
-  const { currentUser, setCurrentUser, resetDemoData } = useApp();
+  const { currentUser, setCurrentUser, logout, switchRole, resetDemoData } = useApp();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
-    name: currentUser.name,
-    rollNo: currentUser.rollNo,
-    email: currentUser.email,
-    department: currentUser.department,
-    year: currentUser.year
+    name: currentUser?.name || '',
+    rollNo: currentUser?.rollNo || '',
+    email: currentUser?.email || '',
+    department: currentUser?.department || '',
+    year: currentUser?.year || ''
   });
 
-  // Sync profileForm whenever currentUser or modal opens (fixes reset demo bug)
   useEffect(() => {
-    setProfileForm({
-      name: currentUser.name,
-      rollNo: currentUser.rollNo,
-      email: currentUser.email,
-      department: currentUser.department,
-      year: currentUser.year
-    });
+    if (currentUser) {
+      setProfileForm({
+        name: currentUser.name,
+        rollNo: currentUser.rollNo,
+        email: currentUser.email,
+        department: currentUser.department,
+        year: currentUser.year
+      });
+    }
   }, [currentUser, isProfileModalOpen]);
 
   const titles = {
     dashboard: {
-      title: 'Dashboard',
-      subtitle: 'Overview of recognized student clubs, campus events, and personal activity'
+      title: currentUser?.role === 'coordinator'
+        ? 'Coordinator Dashboard'
+        : currentUser?.role === 'president'
+        ? 'Executive Portal'
+        : 'Student Dashboard',
+      subtitle: currentUser?.role === 'coordinator'
+        ? 'Society management, applications review, and event scheduling'
+        : currentUser?.role === 'president'
+        ? 'University student organization governance and system metrics'
+        : 'Overview of recognized student clubs, campus events, and personal activity'
     },
     clubs: {
       title: 'University Clubs',
@@ -48,8 +60,12 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
       subtitle: 'Track your confirmed event registrations and club membership requests'
     },
     coordinator: {
-      title: 'Coordinator Approvals',
-      subtitle: 'Review student membership applications: approve or reject with notes'
+      title: 'Coordinator Operations',
+      subtitle: 'Review student membership applications, manage events, and view attendee rosters'
+    },
+    president: {
+      title: 'President Governance Portal',
+      subtitle: 'Executive oversight: charter new clubs, view rosters, and audit university activities'
     }
   };
 
@@ -71,8 +87,19 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
   };
 
   const handleReset = () => {
-    if (window.confirm('Reset application to default sample PBL dataset? Any new test registrations will be cleared.')) {
+    if (window.confirm('Reset application to default sample PBL dataset? Any new test registrations and accounts will be cleared.')) {
       resetDemoData();
+    }
+  };
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'president':
+        return <span className="badge badge-warning"><Award size={11} /> President</span>;
+      case 'coordinator':
+        return <span className="badge badge-approved"><ShieldCheck size={11} /> Coordinator</span>;
+      default:
+        return <span className="badge badge-open"><Users size={11} /> Student</span>;
     }
   };
 
@@ -89,24 +116,38 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
             <Menu size={20} />
           </button>
           <div className="page-title-group">
-            <h2>{currentInfo.title}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2>{currentInfo.title}</h2>
+              {currentUser && getRoleBadge(currentUser.role)}
+            </div>
             <p>{currentInfo.subtitle}</p>
           </div>
         </div>
 
         <div className="header-actions">
-          <div className="term-indicator">
-            Autumn Term 2026
+          {/* Quick Role Switcher for Evaluators */}
+          <div className="role-switcher-group" title="Quick switch active role for PBL demonstration">
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>Portal:</span>
+            <select
+              className="form-select"
+              style={{ padding: '3px 8px', fontSize: '12px', width: 'auto' }}
+              value={currentUser?.role || 'student'}
+              onChange={(e) => switchRole(e.target.value)}
+            >
+              <option value="student">Student Portal</option>
+              <option value="coordinator">Coordinator Portal</option>
+              <option value="president">President Portal</option>
+            </select>
           </div>
 
           <button
             type="button"
             className="btn btn-outline btn-sm"
             onClick={() => setIsProfileModalOpen(true)}
-            title="Switch or edit active student profile"
+            title="View or edit active profile"
           >
-            <User size={14} />
-            <span>Profile: {currentUser.rollNo}</span>
+            <User size={13} />
+            <span>{currentUser?.name?.split(' ')[0]}</span>
           </button>
 
           <button
@@ -115,8 +156,19 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
             onClick={handleReset}
             title="Reset demo data to initial sample values"
           >
-            <RotateCcw size={14} />
-            <span>Reset Demo</span>
+            <RotateCcw size={13} />
+            <span>Reset</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={logout}
+            title="Sign out of your account"
+            style={{ color: '#dc2626' }}
+          >
+            <LogOut size={13} />
+            <span>Logout</span>
           </button>
         </div>
       </header>
@@ -125,16 +177,10 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
       <Modal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        title="Student Profile"
-        subtitle="Edit active student credentials to test duplicate prevention across different roll numbers"
+        title="Active User Profile"
+        subtitle={`Role: ${currentUser?.role?.toUpperCase()} • Account ID: ${currentUser?.id}`}
       >
         <form onSubmit={handleProfileSave}>
-          <div className="alert-box info">
-            <div>
-              <strong>Testing Tip:</strong> Changing the Roll Number or Email allows testing as a different student without clearing storage.
-            </div>
-          </div>
-
           <div className="form-row">
             <div className="form-group">
               <label className="form-label" htmlFor="profile-name">
@@ -151,7 +197,7 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="profile-roll">
-                Roll Number <span className="required-star">*</span>
+                Identification / Roll No <span className="required-star">*</span>
               </label>
               <input
                 id="profile-roll"
@@ -194,20 +240,15 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="profile-year">
-                Academic Year <span className="required-star">*</span>
+                Designation / Year
               </label>
-              <select
+              <input
                 id="profile-year"
-                className="form-select"
+                type="text"
+                className="form-input"
                 value={profileForm.year}
                 onChange={(e) => setProfileForm({ ...profileForm, year: e.target.value })}
-              >
-                <option value="1st Year">1st Year</option>
-                <option value="2nd Year">2nd Year</option>
-                <option value="3rd Year">3rd Year</option>
-                <option value="4th Year">4th Year</option>
-                <option value="Postgraduate">Postgraduate</option>
-              </select>
+              />
             </div>
           </div>
 
@@ -220,8 +261,7 @@ export const Header = ({ activeTab, onToggleSidebar }) => {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              <CheckCircle2 size={15} />
-              Save Profile
+              Save Changes
             </button>
           </div>
         </form>

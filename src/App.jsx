@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
-import { AppProvider } from './context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { ToastContainer } from './components/Toast';
+import { AuthView } from './views/AuthView';
 import { DashboardView } from './views/DashboardView';
 import { ClubsView } from './views/ClubsView';
 import { EventsView } from './views/EventsView';
 import { MyRegistrationsView } from './views/MyRegistrationsView';
 import { CoordinatorView } from './views/CoordinatorView';
+import { PresidentView } from './views/PresidentView';
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const { currentUser } = useApp();
+
+  const getDefaultTab = (role) => {
+    if (role === 'president') return 'president';
+    if (role === 'coordinator') return 'coordinator';
+    return 'dashboard';
+  };
+
+  const [activeTab, setActiveTab] = useState(() => getDefaultTab(currentUser?.role));
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedEventForModal, setSelectedEventForModal] = useState(null);
   const [selectedClubForModal, setSelectedClubForModal] = useState(null);
+
+  // When currentUser changes (e.g. login or role switch), set appropriate default tab
+  useEffect(() => {
+    if (currentUser) {
+      setActiveTab(getDefaultTab(currentUser.role));
+    }
+  }, [currentUser?.role, currentUser?.id]);
 
   const handleSelectEventFromDashboard = (event) => {
     setSelectedEventForModal(event);
@@ -24,6 +41,16 @@ function AppContent() {
     setSelectedClubForModal(club);
     setActiveTab('clubs');
   };
+
+  // If user is not authenticated, render Login/Register Auth View
+  if (!currentUser) {
+    return (
+      <>
+        <AuthView />
+        <ToastContainer />
+      </>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -73,6 +100,10 @@ function AppContent() {
 
           {activeTab === 'coordinator' && (
             <CoordinatorView />
+          )}
+
+          {activeTab === 'president' && (
+            <PresidentView />
           )}
         </main>
       </div>

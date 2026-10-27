@@ -198,15 +198,45 @@ export const INITIAL_EVENTS = [
   }
 ];
 
-export const INITIAL_USER = {
-  name: "Aarav Sharma",
-  rollNo: "2024CS104",
-  email: "aarav.sharma@apex.edu",
-  department: "Computer Science & Engineering",
-  year: "3rd Year",
-  semester: "5th Semester",
-  avatarInitials: "AS"
-};
+export const INITIAL_USERS = [
+  {
+    id: "usr-1",
+    name: "Aarav Sharma",
+    email: "student@apex.edu",
+    password: "password123",
+    role: "student",
+    rollNo: "2024CS104",
+    department: "Computer Science & Engineering",
+    year: "3rd Year",
+    avatarInitials: "AS"
+  },
+  {
+    id: "usr-2",
+    name: "Prof. Vikram Nambiar",
+    email: "coordinator@apex.edu",
+    password: "password123",
+    role: "coordinator",
+    rollNo: "FAC-ROB-042",
+    department: "Mechatronics & Robotics",
+    assignedClubId: "club-2",
+    assignedClubName: "Robotics & Automation Society (RAS)",
+    year: "Faculty Coordinator",
+    avatarInitials: "VN"
+  },
+  {
+    id: "usr-3",
+    name: "Dr. Elena Rostova",
+    email: "president@apex.edu",
+    password: "password123",
+    role: "president",
+    rollNo: "PRES-2026-01",
+    department: "Student Affairs & Executive Council",
+    year: "Council President",
+    avatarInitials: "ER"
+  }
+];
+
+export const INITIAL_USER = INITIAL_USERS[0];
 
 // Realistic initial requests demonstrating Pending, Approved, and Rejected states!
 export const INITIAL_MEMBERSHIP_REQUESTS = [

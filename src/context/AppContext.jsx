@@ -4,6 +4,7 @@ import {
   INITIAL_EVENTS,
   INITIAL_MEMBERSHIP_REQUESTS,
   INITIAL_EVENT_REGISTRATIONS,
+  INITIAL_USERS,
   INITIAL_USER
 } from '../data/mockData';
 
@@ -14,11 +15,34 @@ const STORAGE_KEYS = {
   EVENTS: 'apex_ucms_events',
   REQUESTS: 'apex_ucms_requests',
   REGISTRATIONS: 'apex_ucms_registrations',
-  USER: 'apex_ucms_user'
+  USERS: 'apex_ucms_users',
+  AUTH_USER: 'apex_ucms_auth_user'
 };
 
 export const AppProvider = ({ children }) => {
-  // Load initial data with localStorage fallback
+  // Load users
+  const [users, setUsers] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.USERS);
+      return saved ? JSON.parse(saved) : INITIAL_USERS;
+    } catch (e) {
+      console.error('Error reading users from localStorage', e);
+      return INITIAL_USERS;
+    }
+  });
+
+  // Load active logged-in user
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+      return saved ? JSON.parse(saved) : INITIAL_USER;
+    } catch (e) {
+      console.error('Error reading auth user from localStorage', e);
+      return INITIAL_USER;
+    }
+  });
+
+  // Load clubs
   const [clubs, setClubs] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.CLUBS);
@@ -29,6 +53,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  // Load events
   const [events, setEvents] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.EVENTS);
@@ -39,6 +64,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  // Load membership requests
   const [membershipRequests, setMembershipRequests] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.REQUESTS);
@@ -49,6 +75,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
+  // Load event registrations
   const [eventRegistrations, setEventRegistrations] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.REGISTRATIONS);
@@ -59,19 +86,29 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.USER);
-      return saved ? JSON.parse(saved) : INITIAL_USER;
-    } catch (e) {
-      console.error('Error reading user from localStorage', e);
-      return INITIAL_USER;
-    }
-  });
-
   const [toasts, setToasts] = useState([]);
 
-  // Sync to localStorage whenever state changes
+  // Sync state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    } catch (e) {
+      console.error('Failed to save users to localStorage', e);
+    }
+  }, [users]);
+
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+      }
+    } catch (e) {
+      console.error('Failed to save auth user to localStorage', e);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.CLUBS, JSON.stringify(clubs));
@@ -104,21 +141,12 @@ export const AppProvider = ({ children }) => {
     }
   }, [eventRegistrations]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(currentUser));
-    } catch (e) {
-      console.error('Failed to save currentUser to localStorage', e);
-    }
-  }, [currentUser]);
-
   // Toast notification helper
   const addToast = (type, title, message) => {
     const id = Date.now() + Math.random().toString(36).substring(2, 9);
     const newToast = { id, type, title, message };
     setToasts((prev) => [...prev, newToast]);
 
-    // Auto dismiss after 4.5 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
@@ -128,9 +156,108 @@ export const AppProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // ==========================================
+  // AUTHENTICATION & AUTHORIZATION
+  // ==========================================
+
+  const login = (email, password) => {
+    if (!email?.trim() || !password?.trim()) {
+      addToast('error', 'Login Failed', 'Please provide both email and password.');
+      return { success: false, error: 'Email and password are required.' };
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const foundUser = users.find(
+      (u) => u.email.toLowerCase() === normalizedEmail && u.password === password
+    );
+
+    if (!foundUser) {
+      addToast('error', 'Authentication Failed', 'Invalid email address or password.');
+      return { success: false, error: 'Invalid email or password.' };
+    }
+
+    setCurrentUser(foundUser);
+    addToast('success', 'Welcome Back', `Logged in as ${foundUser.name} (${foundUser.role.toUpperCase()}).`);
+    return { success: true, user: foundUser };
+  };
+
+  const register = ({ name, email, password, role, rollNo, department, year, assignedClubId }) => {
+    if (!name?.trim() || !email?.trim() || !password?.trim() || !role?.trim() || !rollNo?.trim() || !department?.trim()) {
+      addToast('error', 'Registration Failed', 'Please complete all required fields.');
+      return { success: false, error: 'All fields are required.' };
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      addToast('error', 'Invalid Email', 'Please enter a valid email address.');
+      return { success: false, error: 'Invalid email address format.' };
+    }
+
+    if (password.length < 6) {
+      addToast('error', 'Weak Password', 'Password must be at least 6 characters.');
+      return { success: false, error: 'Password must be at least 6 characters.' };
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    if (existingUser) {
+      addToast('warning', 'Account Exists', 'An account with this email address already exists.');
+      return { success: false, error: 'An account with this email already exists.' };
+    }
+
+    const initials = name
+      .trim()
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+    let assignedClubName = '';
+    if (role === 'coordinator' && assignedClubId) {
+      const c = clubs.find((club) => club.id === assignedClubId);
+      if (c) assignedClubName = c.name;
+    }
+
+    const newUser = {
+      id: `usr-${Date.now()}`,
+      name: name.trim(),
+      email: normalizedEmail,
+      password,
+      role, // 'student' | 'coordinator' | 'president'
+      rollNo: rollNo.trim().toUpperCase(),
+      department: department.trim(),
+      year: year ? year.trim() : (role === 'coordinator' ? 'Faculty Lead' : 'Council Lead'),
+      assignedClubId: assignedClubId || null,
+      assignedClubName: assignedClubName || null,
+      avatarInitials: initials || 'AP'
+    };
+
+    setUsers((prev) => [...prev, newUser]);
+    setCurrentUser(newUser);
+    addToast('success', 'Registration Successful', `Account created! Welcome to UCMS as a ${role}.`);
+    return { success: true, user: newUser };
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    addToast('info', 'Logged Out', 'You have been successfully signed out.');
+  };
+
+  // Quick switch role for testing / grading ease
+  const switchRole = (targetRole) => {
+    const demoUser = users.find((u) => u.role === targetRole);
+    if (demoUser) {
+      setCurrentUser(demoUser);
+      addToast('info', 'Switched Portal', `Now viewing as ${demoUser.name} (${demoUser.role.toUpperCase()}).`);
+    }
+  };
+
+  // ==========================================
   // MODULE 1: CLUB MANAGEMENT & MEMBERSHIP
+  // ==========================================
+
   const submitMembershipRequest = ({ clubId, studentName, rollNo, email, department, year, reason }) => {
-    // 1. Validation
     if (!studentName?.trim() || !rollNo?.trim() || !email?.trim() || !department?.trim() || !year?.trim() || !reason?.trim()) {
       addToast('error', 'Validation Error', 'Please complete all required fields including your reason for joining.');
       return { success: false, error: 'All fields are required.' };
@@ -153,7 +280,6 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Club not found.' };
     }
 
-    // 2. Duplicate Check: Check if rollNo or email already requested this club
     const normalizedRoll = rollNo.trim().toUpperCase();
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -171,12 +297,11 @@ export const AppProvider = ({ children }) => {
         addToast('warning', 'Duplicate Request', `You already have a pending membership application for ${club.name}.`);
         return { success: false, error: 'Membership request is already pending review.' };
       } else {
-        addToast('error', 'Application Denied Previously', `Your prior application for ${club.name} was rejected. Contact ${club.email} for appeals.`);
+        addToast('error', 'Application Denied Previously', `Your prior application for ${club.name} was rejected. Contact coordinator for appeals.`);
         return { success: false, error: 'Previous request was rejected.' };
       }
     }
 
-    // 3. Create and Save Request
     const newRequest = {
       id: `req-${Date.now()}`,
       clubId,
@@ -197,7 +322,6 @@ export const AppProvider = ({ children }) => {
     return { success: true, request: newRequest };
   };
 
-  // Coordinator action: Approve or Reject membership (PBL lifecycle demonstration)
   const updateMembershipStatus = (requestId, newStatus, note = '') => {
     const targetRequest = membershipRequests.find((req) => req.id === requestId);
     const affectedClubId = targetRequest ? targetRequest.clubId : null;
@@ -219,7 +343,6 @@ export const AppProvider = ({ children }) => {
       })
     );
 
-    // If approved and was not already approved, increment club member count
     if (newStatus === 'Approved' && affectedClubId && targetRequest?.status !== 'Approved') {
       setClubs((prev) =>
         prev.map((c) => (c.id === affectedClubId ? { ...c, memberCount: c.memberCount + 1 } : c))
@@ -233,9 +356,11 @@ export const AppProvider = ({ children }) => {
     );
   };
 
+  // ==========================================
   // MODULE 2: EVENT MANAGEMENT & REGISTRATION
+  // ==========================================
+
   const registerForEvent = ({ eventId, studentName, rollNo, email, department, year }) => {
-    // 1. Validation
     if (!studentName?.trim() || !rollNo?.trim() || !email?.trim() || !department?.trim() || !year?.trim()) {
       addToast('error', 'Validation Error', 'Please complete all student identification fields to register.');
       return { success: false, error: 'All fields are required.' };
@@ -253,13 +378,11 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Event not found.' };
     }
 
-    // 2. Capacity Check: Prevent registration if event is full
     if (event.availableSeats <= 0) {
       addToast('error', 'Event Full', `Registration failed: "${event.title}" is already full (0 seats available).`);
       return { success: false, error: 'This event is full. No seats available.' };
     }
 
-    // 3. Duplicate Check: Prevent multiple registrations by same student
     const normalizedRoll = rollNo.trim().toUpperCase();
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -274,7 +397,6 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: `Duplicate registration. Ticket: ${alreadyRegistered.ticketCode}` };
     }
 
-    // 4. Success: Generate Ticket and Decrement Available Seats
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const prefix = event.category.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'EVT');
     const ticketCode = `APX-${prefix}-${randomSuffix}`;
@@ -296,7 +418,6 @@ export const AppProvider = ({ children }) => {
       location: event.location
     };
 
-    // Decrement seat count in event list
     setEvents((prev) =>
       prev.map((e) => {
         if (e.id === eventId) {
@@ -315,12 +436,10 @@ export const AppProvider = ({ children }) => {
     return { success: true, registration: newRegistration };
   };
 
-  // Cancel registration & release seat back to event pool
   const cancelEventRegistration = (registrationId) => {
     const reg = eventRegistrations.find((r) => r.id === registrationId);
     if (!reg) return;
 
-    // Increment seat back
     setEvents((prev) =>
       prev.map((e) => {
         if (e.id === reg.eventId) {
@@ -338,32 +457,106 @@ export const AppProvider = ({ children }) => {
     addToast('info', 'Registration Cancelled', `Registration for "${reg.eventTitle}" was cancelled. 1 seat released.`);
   };
 
+  // ==========================================
+  // COORDINATOR & PRESIDENT CREATION POWERS
+  // ==========================================
+
+  // Create new event (for Coordinator of their club, or President for any club)
+  const createEvent = ({ title, clubId, category, date, time, location, totalCapacity, description, eligibility }) => {
+    if (!title?.trim() || !clubId || !date || !time || !location?.trim() || !totalCapacity) {
+      addToast('error', 'Incomplete Form', 'Please complete all required event parameters.');
+      return { success: false, error: 'All fields are required.' };
+    }
+
+    const club = clubs.find((c) => c.id === clubId);
+    const capacityNum = parseInt(totalCapacity, 10);
+    if (isNaN(capacityNum) || capacityNum <= 0) {
+      addToast('error', 'Invalid Capacity', 'Capacity must be a positive integer.');
+      return { success: false, error: 'Capacity must be a positive integer.' };
+    }
+
+    const newEvent = {
+      id: `evt-${Date.now()}`,
+      title: title.trim(),
+      clubId,
+      clubName: club ? club.name : 'University Council',
+      category: category || (club ? club.category : 'General'),
+      date,
+      time,
+      location: location.trim(),
+      totalCapacity: capacityNum,
+      availableSeats: capacityNum,
+      registeredCount: 0,
+      description: description ? description.trim() : 'Official campus event.',
+      eligibility: eligibility ? eligibility.trim() : 'Open to all university students',
+      badge: 'New Event'
+    };
+
+    setEvents((prev) => [newEvent, ...prev]);
+    addToast('success', 'Event Published', `"${newEvent.title}" is now open for student registration.`);
+    return { success: true, event: newEvent };
+  };
+
+  // President power: Charter/create new recognized club
+  const createClub = ({ name, shortName, category, coordinator, email, location, meetingSchedule, description, tags }) => {
+    if (!name?.trim() || !category?.trim() || !coordinator?.trim() || !email?.trim() || !description?.trim()) {
+      addToast('error', 'Incomplete Form', 'Please provide club name, category, coordinator, email, and description.');
+      return { success: false, error: 'All required fields must be filled.' };
+    }
+
+    const newClub = {
+      id: `club-${Date.now()}`,
+      name: name.trim(),
+      shortName: shortName ? shortName.trim() : name.split(' ').map((w) => w[0]).join('').slice(0, 4),
+      category: category.trim(),
+      coordinator: coordinator.trim(),
+      email: email.trim(),
+      location: location ? location.trim() : 'Campus Center',
+      meetingSchedule: meetingSchedule ? meetingSchedule.trim() : 'TBD',
+      memberCount: 1,
+      established: new Date().getFullYear(),
+      description: description.trim(),
+      tags: tags && tags.length > 0 ? tags : ['StudentClub', category.trim()]
+    };
+
+    setClubs((prev) => [newClub, ...prev]);
+    addToast('success', 'Club Chartered', `"${newClub.name}" has been officially registered.`);
+    return { success: true, club: newClub };
+  };
+
   // Reset to initial demo data
   const resetDemoData = () => {
     localStorage.removeItem(STORAGE_KEYS.CLUBS);
     localStorage.removeItem(STORAGE_KEYS.EVENTS);
     localStorage.removeItem(STORAGE_KEYS.REQUESTS);
     localStorage.removeItem(STORAGE_KEYS.REGISTRATIONS);
-    localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.USERS);
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
 
     setClubs(INITIAL_CLUBS);
     setEvents(INITIAL_EVENTS);
     setMembershipRequests(INITIAL_MEMBERSHIP_REQUESTS);
     setEventRegistrations(INITIAL_EVENT_REGISTRATIONS);
-    setCurrentUser(INITIAL_USER);
+    setUsers(INITIAL_USERS);
+    setCurrentUser(INITIAL_USERS[0]);
 
-    addToast('success', 'Reset Complete', 'All clubs, events, and registrations have been restored to sample PBL defaults.');
+    addToast('success', 'Reset Complete', 'Application restored to default PBL demo state.');
   };
 
   return (
     <AppContext.Provider
       value={{
+        users,
+        currentUser,
+        setCurrentUser,
+        login,
+        register,
+        logout,
+        switchRole,
         clubs,
         events,
         membershipRequests,
         eventRegistrations,
-        currentUser,
-        setCurrentUser,
         toasts,
         addToast,
         removeToast,
@@ -371,6 +564,8 @@ export const AppProvider = ({ children }) => {
         updateMembershipStatus,
         registerForEvent,
         cancelEventRegistration,
+        createEvent,
+        createClub,
         resetDemoData
       }}
     >
