@@ -203,7 +203,7 @@ export const MyRegistrationsView = ({ onNavigateToEvents, onNavigateToClubs }) =
                       <td className="text-muted" style={{ fontSize: '12px' }}>
                         {req.appliedDate}
                       </td>
-                      <td style={{ maxWidth: '280px', fontSize: '12px', color: '#334155' }}>
+                      <td style={{ maxWidth: '280px', fontSize: '12px', color: 'var(--text-main)' }}>
                         "{req.reason}"
                       </td>
                       <td>

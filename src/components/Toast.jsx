@@ -16,7 +16,7 @@ export const ToastContainer = () => {
       case 'warning':
         return <AlertTriangle size={18} className="text-amber-600" style={{ color: '#f59e0b' }} />;
       default:
-        return <Info size={18} className="text-blue-600" style={{ color: '#3b82f6' }} />;
+        return <Info size={18} style={{ color: 'var(--primary-accent)' }} />;
     }
   };
 

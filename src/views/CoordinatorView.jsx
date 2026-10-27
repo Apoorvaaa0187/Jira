@@ -133,7 +133,7 @@ export const CoordinatorView = () => {
   return (
     <div className="coordinator-view">
       {/* Club Context Banner */}
-      <div className="filter-bar" style={{ backgroundColor: '#ffffff', marginBottom: '16px' }}>
+      <div className="filter-bar" style={{ backgroundColor: 'var(--bg-subtle)', marginBottom: '16px' }}>
         <div>
           <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
             Active Coordinator Portal
@@ -258,7 +258,7 @@ export const CoordinatorView = () => {
                       <td className="text-muted" style={{ fontSize: '12px' }}>
                         {req.appliedDate}
                       </td>
-                      <td style={{ maxWidth: '240px', fontSize: '12px', color: '#334155' }}>
+                      <td style={{ maxWidth: '240px', fontSize: '12px', color: 'var(--text-main)' }}>
                         <div
                           style={{
                             display: '-webkit-box',
@@ -445,7 +445,7 @@ export const CoordinatorView = () => {
 
             <div style={{ marginBottom: '14px', padding: '10px 12px', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>
               <div style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2px' }}>Applicant Statement:</div>
-              <div style={{ fontStyle: 'italic', color: '#334155' }}>"{selectedRequest.reason}"</div>
+              <div style={{ fontStyle: 'italic', color: 'var(--text-main)' }}>"{selectedRequest.reason}"</div>
             </div>
 
             <div className="form-group">

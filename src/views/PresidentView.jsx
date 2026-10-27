@@ -96,7 +96,7 @@ export const PresidentView = () => {
   return (
     <div className="president-view">
       {/* Executive Header Banner */}
-      <div className="filter-bar" style={{ backgroundColor: '#ffffff', marginBottom: '16px' }}>
+      <div className="filter-bar" style={{ backgroundColor: 'var(--bg-subtle)', marginBottom: '16px' }}>
         <div>
           <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
             Executive Council & Student Affairs
@@ -403,7 +403,7 @@ export const PresidentView = () => {
                     <td style={{ fontSize: '12px' }}>{req.clubName}</td>
                     <td style={{ fontSize: '12px' }}>{req.department}</td>
                     <td className="text-muted" style={{ fontSize: '12px' }}>{req.appliedDate}</td>
-                    <td style={{ maxWidth: '240px', fontSize: '12px', color: '#334155' }}>
+                    <td style={{ maxWidth: '240px', fontSize: '12px', color: 'var(--text-main)' }}>
                       "{req.reason}"
                     </td>
                     <td>
